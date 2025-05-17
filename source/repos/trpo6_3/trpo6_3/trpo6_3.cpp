@@ -31,3 +31,70 @@ struct NutritionVisitor {
     } data;
 };
 
+// Конкретные элементы рецепта
+struct Mushrooms : Ingredient {
+    Mushrooms(double g) : weight(g) {}
+
+    void accept(NutritionVisitor& visitor) override {
+        visitor.visit(this);
+    }
+
+    double getWeight() const override { return weight; }
+
+private:
+    double weight;
+};
+
+struct Shrimp : Ingredient {
+    Shrimp(double g) : weight(g) {}
+
+    void accept(NutritionVisitor& visitor) override {
+        visitor.visit(this);
+    }
+
+    double getWeight() const override { return weight; }
+
+private:
+    double weight;
+};
+
+struct SourCream : Ingredient {
+    SourCream(double g) : weight(g) {}
+
+    void accept(NutritionVisitor& visitor) override {
+        visitor.visit(this);
+    }
+
+    double getWeight() const override { return weight; }
+
+private:
+    double weight;
+};
+
+struct Cheese : Ingredient {
+    Cheese(double g) : weight(g) {}
+
+    void accept(NutritionVisitor& visitor) override {
+        visitor.visit(this);
+    }
+
+    double getWeight() const override { return weight; }
+
+private:
+    double weight;
+};
+
+struct HerbsAndSpices : Ingredient {
+    HerbsAndSpices(double g) : weight(g) {}
+
+    void accept(NutritionVisitor& visitor) override {
+        visitor.visit(this);
+    }
+
+    double getWeight() const override { return weight; }
+
+private:
+    double weight;
+};
+
+
