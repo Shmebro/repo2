@@ -158,3 +158,29 @@ struct Recipe {
         return visitor.data;
     }
 };
+
+int main() {
+    setlocale(LC_ALL, "Russian");
+
+    Recipe dish;
+    dish.addItem(make_unique<Mushrooms>(500.0));
+    dish.addItem(make_unique<Shrimp>(100.0));
+    dish.addItem(make_unique<SourCream>(30.0));
+    dish.addItem(make_unique<Cheese>(20.0));
+    dish.addItem(make_unique<HerbsAndSpices>(30.0));
+
+    auto results = dish.calculate();
+
+    cout << "------------------------------\n";
+    cout << "| Питательная ценность блюда |\n";
+    cout << "------------------------------\n";
+    cout << fixed << setprecision(2);
+    cout << "| Калории:    " << setw(8) << results.calories << " ккал|\n";
+    cout << "| Белки:      " << setw(8) << results.proteins << " г   |\n";
+    cout << "| Жиры:       " << setw(8) << results.fats << " г   |\n";
+    cout << "| Углеводы:   " << setw(8) << results.carbs << " г   |\n";
+    cout << "| Стоимость:  " << setw(8) << results.cost << " руб |\n";
+    cout << "------------------------------\n";
+
+    return 0;
+}
