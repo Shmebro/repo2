@@ -142,3 +142,19 @@ struct NutritionCalculator : NutritionVisitor {
     }
 };
 
+// Класс рецепта
+struct Recipe {
+    vector<unique_ptr<Ingredient>> items;
+
+    void addItem(unique_ptr<Ingredient>&& ingredient) {
+        items.push_back(move(ingredient));
+    }
+
+    NutritionVisitor::NutritionData calculate() {
+        NutritionCalculator visitor;
+        for (auto& item : items) {
+            item->accept(visitor);
+        }
+        return visitor.data;
+    }
+};
