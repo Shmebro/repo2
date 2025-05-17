@@ -97,4 +97,48 @@ private:
     double weight;
 };
 
+// Реализация посетителя
+struct NutritionCalculator : NutritionVisitor {
+    void visit(Mushrooms* item) override {
+        const double ratio = item->getWeight() / 100.0;
+        data.calories += 27.0 * ratio;
+        data.proteins += 4.4 * ratio;
+        data.fats += 1.0 * ratio;
+        data.carbs += 0.2 * ratio;
+        data.cost += 20.0 * ratio;
+    }
+
+    void visit(Shrimp* item) override {
+        const double ratio = item->getWeight() / 100.0;
+        data.calories += 83.0 * ratio;
+        data.proteins += 18.0 * ratio;
+        data.fats += 1.0 * ratio;
+        data.cost += 50.0 * ratio;
+    }
+
+    void visit(SourCream* item) override {
+        const double ratio = item->getWeight() / 100.0;
+        data.calories += 120.0 * ratio;
+        data.proteins += 3.3 * ratio;
+        data.fats += 10.0 * ratio;
+        data.carbs += 3.3 * ratio;
+        data.cost += 14.4 * ratio;
+    }
+
+    void visit(Cheese* item) override {
+        const double ratio = item->getWeight() / 100.0;
+        data.calories += 345.0 * ratio;
+        data.proteins += 25.0 * ratio;
+        data.fats += 25.0 * ratio;
+        data.cost += 70.0 * ratio;
+    }
+
+    void visit(HerbsAndSpices* item) override {
+        const double ratio = item->getWeight() / 100.0;
+        data.calories += 37.0 * ratio;
+        data.proteins += 3.3 * ratio;
+        data.carbs += 7.0 * ratio;
+        data.cost += 20.0 * ratio;
+    }
+};
 
