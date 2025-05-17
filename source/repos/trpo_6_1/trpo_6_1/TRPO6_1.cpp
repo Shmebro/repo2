@@ -1,36 +1,62 @@
-#include <iostream>
+ï»¿#include <iostream>
+#include <cmath>
 #include <string>
+
 using namespace std;
 
-// Áàçîâûå êëàññû
+// Forward declarations
+struct Expression;
+struct Number;
+struct BinaryOperation;
+struct FunctionCall;
+struct Variable;
+
+// Ð˜Ð½Ñ‚ÐµÑ€Ñ„ÐµÐ¹Ñ Transformer Ñ Ð°Ð±ÑÑ‚Ñ€Ð°ÐºÑ‚Ð½Ñ‹Ð¼Ð¸ Ð¼ÐµÑ‚Ð¾Ð´Ð°Ð¼Ð¸
+struct Transformer {
+    virtual ~Transformer() = default;
+    virtual Expression* transformNumber(Number const*) = 0;
+    virtual Expression* transformBinaryOperation(BinaryOperation const*) = 0;
+    virtual Expression* transformFunctionCall(FunctionCall const*) = 0;
+    virtual Expression* transformVariable(Variable const*) = 0;
+};
+
+// Ð‘Ð°Ð·Ð¾Ð²Ñ‹Ð¹ ÐºÐ»Ð°ÑÑ Expression
 struct Expression {
     virtual ~Expression() = default;
     virtual double evaluate() const = 0;
     virtual Expression* transform(Transformer* tr) const = 0;
 };
 
+// ÐšÐ»Ð°ÑÑ Number
 struct Number : Expression {
-    double value_;
-    Number(double value) : value_(value) {}
+    explicit Number(double value) : value_(value) {}
+
+    double value() const { return value_; }
     double evaluate() const override { return value_; }
-    Expression* transform(Transformer* tr) const override;
+
+    Expression* transform(Transformer* tr) const override {
+        return tr->transformNumber(this);
+    }
+
+private:
+    double value_;
 };
 
+// ÐšÐ»Ð°ÑÑ BinaryOperation
 struct BinaryOperation : Expression {
-    enum { PLUS = '+', MINUS = '-', DIV = '/', MUL = '*' };
-    Expression* left_;
-    Expression* right_;
-    int op_;
+    enum Operation { PLUS, MINUS, DIV, MUL };
 
-    BinaryOperation(Expression* left, int op, Expression* right)
-        : left_(left), op_(op), right_(right) {
-        // Óáèðàåì assert, òàê êàê ïðîâåðêà äîëæíà áûòü â âûçûâàþùåì êîäå
-    }
+    BinaryOperation(Expression* left, Operation op, Expression* right)
+        : left_(left), op_(op), right_(right) {}
 
     ~BinaryOperation() override {
         delete left_;
         delete right_;
     }
+
+    Expression* left() const { return left_; }
+    Expression* right() const { return right_; }
+    Operation op() const { return op_; }
 
     double evaluate() const override {
         double l = left_->evaluate();
@@ -44,111 +70,160 @@ struct BinaryOperation : Expression {
         return 0.0;
     }
 
-    Expression* transform(Transformer* tr) const override;
+    Expression* transform(Transformer* tr) const override {
+        return tr->transformBinaryOperation(this);
+    }
+
+private:
+    Expression* left_;
+    Operation op_;
+    Expression* right_;
 };
 
+// ÐšÐ»Ð°ÑÑ FunctionCall
 struct FunctionCall : Expression {
-    string name_;
-    Expression* arg_;
-
-    FunctionCall(string name, Expression* arg)
+    FunctionCall(const string& name, Expression* arg)
         : name_(name), arg_(arg) {}
 
     ~FunctionCall() override {
         delete arg_;
     }
 
+    string name() const { return name_; }
+    Expression* arg() const { return arg_; }
+
     double evaluate() const override {
-        if (name_ == "sqrt") return sqrt(arg_->evaluate());
-        else if (name_ == "abs") return fabs(arg_->evaluate());
+        double arg_value = arg_->evaluate();
+        if (name_ == "sqrt") return sqrt(arg_value);
+        if (name_ == "abs") return fabs(arg_value);
         return 0.0;
     }
 
-    Expression* transform(Transformer* tr) const override;
-};
+    Expression* transform(Transformer* tr) const override {
+        return tr->transformFunctionCall(this);
+    }
 
-struct Variable : Expression {
+private:
     string name_;
-    Variable(string name) : name_(name) {}
-    double evaluate() const override { return 0.0; }
-    Expression* transform(Transformer* tr) const override;
+    Expression* arg_;
 };
 
-// Èíòåðôåéñ Transformer
-struct Transformer {
-    virtual ~Transformer() = default;
-    virtual Expression* transformNumber(Number const*) = 0;
-    virtual Expression* transformBinaryOperation(BinaryOperation const*) = 0;
-    virtual Expression* transformFunctionCall(FunctionCall const*) = 0;
-    virtual Expression* transformVariable(Variable const*) = 0;
+// ÐšÐ»Ð°ÑÑ Variable
+struct Variable : Expression {
+    Variable(const string& name, double value = 0.0) : name_(name), value_(value) {}
+
+    string name() const { return name_; }
+    double value() const { return value_; }
+    void setValue(double value) { value_ = value; }
+
+    double evaluate() const override { return value_; }
+
+    Expression* transform(Transformer* tr) const override {
+        return tr->transformVariable(this);
+    }
+
+private:
+    string name_;
+    double value_;
 };
 
-// Ðåàëèçàöèÿ ìåòîäîâ transform
-Expression* Number::transform(Transformer* tr) const {
-    return tr->transformNumber(this);
-}
-
-Expression* BinaryOperation::transform(Transformer* tr) const {
-    return tr->transformBinaryOperation(this);
-}
-
-Expression* FunctionCall::transform(Transformer* tr) const {
-    return tr->transformFunctionCall(this);
-}
-
-Expression* Variable::transform(Transformer* tr) const {
-    return tr->transformVariable(this);
-}
-
-// Êëàññ CopySyntaxTree
+// Ð ÐµÐ°Ð»Ð¸Ð·Ð°Ñ†Ð¸Ñ CopySyntaxTree
 struct CopySyntaxTree : Transformer {
     Expression* transformNumber(Number const* number) override {
-        return new Number(number->value_);
+        return new Number(number->value());
     }
 
     Expression* transformBinaryOperation(BinaryOperation const* binop) override {
-        Expression* newLeft = binop->left_->transform(this);
-        Expression* newRight = binop->right_->transform(this);
-        return new BinaryOperation(newLeft, binop->op_, newRight);
+        Expression* left = binop->left()->transform(this);
+        Expression* right = binop->right()->transform(this);
+        return new BinaryOperation(left, binop->op(), right);
     }
 
     Expression* transformFunctionCall(FunctionCall const* fcall) override {
-        Expression* newArg = fcall->arg_->transform(this);
-        return new FunctionCall(fcall->name_, newArg);
+        Expression* arg = fcall->arg()->transform(this);
+        return new FunctionCall(fcall->name(), arg);
     }
 
     Expression* transformVariable(Variable const* var) override {
-        return new Variable(var->name_);
+        return new Variable(var->name(), var->value());
+    }
+};
+
+// Ð ÐµÐ°Ð»Ð¸Ð·Ð°Ñ†Ð¸Ñ FoldConstants
+struct FoldConstants : Transformer {
+    Expression* transformNumber(Number const* number) override {
+        return new Number(number->value());
+    }
+
+    Expression* transformBinaryOperation(BinaryOperation const* binop) override {
+        Expression* left = binop->left()->transform(this);
+        Expression* right = binop->right()->transform(this);
+
+        if (auto* numLeft = dynamic_cast<Number*>(left)) {
+            if (auto* numRight = dynamic_cast<Number*>(right)) {
+                double result = 0;
+                switch (binop->op()) {
+                case BinaryOperation::PLUS:  result = numLeft->value() + numRight->value(); break;
+                case BinaryOperation::MINUS: result = numLeft->value() - numRight->value(); break;
+                case BinaryOperation::MUL:   result = numLeft->value() * numRight->value(); break;
+                case BinaryOperation::DIV:   result = numLeft->value() / numRight->value(); break;
+                }
+                delete left;
+                delete right;
+                return new Number(result);
+            }
+        }
+        return new BinaryOperation(left, binop->op(), right);
+    }
+
+    Expression* transformFunctionCall(FunctionCall const* fcall) override {
+        Expression* arg = fcall->arg()->transform(this);
+        if (auto* numArg = dynamic_cast<Number*>(arg)) {
+            double val = numArg->value();
+            delete arg;
+            if (fcall->name() == "sqrt") return new Number(sqrt(val));
+            if (fcall->name() == "abs") return new Number(fabs(val));
+        }
+        return new FunctionCall(fcall->name(), arg);
+    }
+
+    Expression* transformVariable(Variable const* var) override {
+        return new Variable(var->name(), var->value());
     }
 };
 
 int main() {
-    
-    Number* n32 = new Number(32.0);
-    Number* n16 = new Number(16.0);
-    BinaryOperation* minus = new BinaryOperation(n32, BinaryOperation::MINUS, n16);
-    FunctionCall* callSqrt = new FunctionCall("sqrt", minus);
-    Variable* var = new Variable("var");
-    BinaryOperation* mult = new BinaryOperation(var, BinaryOperation::MUL, callSqrt);
-    FunctionCall* callAbs = new FunctionCall("abs", mult);
+    // Ð¡Ð¾Ð·Ð´Ð°Ð½Ð¸Ðµ AST: abs(var * sqrt(32 - 16))
+    Expression* expr = new FunctionCall("abs",
+        new BinaryOperation(
+            new Variable("var", 5.0), // Ð—Ð½Ð°Ñ‡ÐµÐ½Ð¸Ðµ Ð¿ÐµÑ€ÐµÐ¼ÐµÐ½Ð½Ð¾Ð¹ var ÑƒÑÑ‚Ð°Ð½Ð¾Ð²Ð»ÐµÐ½Ð¾ Ð² 5.0
+            BinaryOperation::MUL,
+            new FunctionCall("sqrt",
+                new BinaryOperation(
+                    new Number(32.0),
+                    BinaryOperation::MINUS,
+                    new Number(16.0)
+                )
+            )
+        )
+    );
 
-    
-    CopySyntaxTree CST;
-    Expression* newExpr = callAbs->transform(&CST);
+    cout << "Original: " << expr->evaluate() << endl;
 
-    
-    cout << "Original result: " << callAbs->evaluate() << endl;
-    cout << "Copied result: " << newExpr->evaluate() << endl;
+    // ÐšÐ¾Ð¿Ð¸Ñ€Ð¾Ð²Ð°Ð½Ð¸Ðµ Ð´ÐµÑ€ÐµÐ²Ð°
+    CopySyntaxTree copier;
+    Expression* copied = expr->transform(&copier);
+    cout << "Copied: " << copied->evaluate() << endl;
 
-    
-    delete n32;
-    delete n16;
-    delete minus;
-    delete callSqrt;
-    delete var;
-    delete mult;
-    delete callAbs;
-    delete newExpr;
+    // Ð¡Ð²Ð¾Ñ€Ð°Ñ‡Ð¸Ð²Ð°Ð½Ð¸Ðµ ÐºÐ¾Ð½ÑÑ‚Ð°Ð½Ñ‚
+    FoldConstants folder;
+    Expression* folded = expr->transform(&folder);
+    cout << "Folded: " << folded->evaluate() << endl;
+
+
+    delete expr;
+    delete copied;
+    delete folded;
 
     return 0;
 }
